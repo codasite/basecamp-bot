@@ -1,0 +1,58 @@
+# basecamp-bot configuration.
+# Copy to ~/.config/basecamp-bot/config.toml (or point $BCBOT_CONFIG at it).
+# Every id below can be looked up with bcbot: `accounts`, `projects`, `people`, `chats`.
+
+# Basecamp account to work in. `bcbot accounts` lists the ones your token can reach.
+account_id = 0
+
+# Basecamp requires integrations to identify themselves: app name + a contact.
+user_agent = "Your Company Basecamp Bot (you@yourcompany.com)"
+
+# --- Who the bot acts as ------------------------------------------------------
+# The bot posts as whichever Basecamp user the token belongs to. Most teams create a
+# dedicated user (e.g. "Assistant") so replies are clearly labelled.
+# Token sources, first match wins:
+#   1. $BASECAMP_TOKEN (or the env var named here): a raw access token, no refresh
+#   2. bcbot's own OAuth login: `bcbot auth login ...` (recommended; auto-refreshes)
+#   3. the official Basecamp CLI's stored login for `profile`
+token_env = "BASECAMP_TOKEN"
+credentials = "~/.config/basecamp-bot/credentials.json"
+profile = ""
+
+# How the drafter should sound, and facts it may rely on.
+persona = ""    # display name, e.g. "Assistant" (defaults to the user's Basecamp name)
+voice = "Friendly, concise, professional."
+context = """
+"""
+
+state_db = "~/.local/share/basecamp-bot/state.db"
+# Drafts older than this are refused at approval time; the thread has likely moved on.
+stale_hours = 24
+
+# --- What it reads -------------------------------------------------------------
+[sources]
+mentions = true   # @mentions of the bot's user anywhere it can see
+pings = true      # 1:1 and group Pings sent to the bot's user
+campfires = []    # project ids whose Campfire is watched, e.g. [12345678]
+activity = []     # project ids where every new comment / message is considered
+
+# --- Who approves, inside Basecamp --------------------------------------------
+# Draft cards are posted into this Campfire or Ping. Approvers reply there with
+# "send 12", "skip 12" or "edit 12: new text". Nothing posts without that reply.
+# Get the URL from `bcbot chats` or `bcbot projects`; people ids from `bcbot people`.
+[approval]
+chat = ""         # e.g. "https://3.basecamp.com/<account>/buckets/<project>/chats/<chat>"
+approvers = []    # e.g. [1234567]
+
+# --- Built-in drafting (optional) ----------------------------------------------
+# Leave provider empty if your own AI agent drafts via `bcbot context` + `bcbot draft`.
+#   claude      Anthropic API     key: $ANTHROPIC_API_KEY   default model claude-opus-5-5
+#   openai      OpenAI API        key: $OPENAI_API_KEY      model required
+#   openrouter  OpenRouter        key: $OPENROUTER_API_KEY  model required, e.g. "anthropic/claude-opus-5.5"
+#   hermes      Hermes Agent API  key: $API_SERVER_KEY      default http://127.0.0.1:8642/v1, model "hermes-agent"
+[llm]
+provider = ""
+model = ""
+api_key_env = ""  # override the key env var name
+base_url = ""     # override the endpoint (OpenAI-compatible providers)
+effort = "medium" # claude only: low | medium | high | xhigh | max
