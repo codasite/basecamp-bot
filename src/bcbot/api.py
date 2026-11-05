@@ -125,6 +125,9 @@ class Client:
     def chats(self) -> list:
         return self.get_all("chats.json")
 
+    def circle(self, bucket: int) -> dict:
+        return self.get(f"/circles/{bucket}.json")
+
     def chat_lines(self, bucket: int, chat: int) -> list:
         return self.get_all(f"buckets/{bucket}/chats/{chat}/lines.json", limit_pages=2)
 

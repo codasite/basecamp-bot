@@ -19,6 +19,7 @@ from .text import html_to_text
 
 _BUCKET = re.compile(r"/buckets/(\d+)/")
 _CHAT = re.compile(r"/buckets/(\d+)/chats/(\d+)")
+_CIRCLE = re.compile(r"/circles/(\d+)")
 
 
 def _rec_id_from_identifier(ident: str | None) -> int | None:
@@ -152,9 +153,24 @@ class Poller:
             if (c.get("bucket") or {}).get("type") != "Project":
                 found[c["id"]] = (c["bucket"]["id"], c.get("title") or c["bucket"].get("name"))
         for r in (readings.get("unreads") or []) + (readings.get("reads") or []):
-            m = _CHAT.search(r.get("app_url", ""))
-            if m and (r.get("section") == "pings" or "Ping" in (r.get("title") or "")):
+            if not (r.get("section") == "pings" or "Ping" in (r.get("title") or "")):
+                continue
+            url = r.get("app_url", "")
+            m = _CHAT.search(url)
+            if m:
                 found.setdefault(int(m.group(2)), (int(m.group(1)), r.get("bucket_name") or "Ping"))
+                continue
+            # Pings appear in readings as /circles/<bucket>; resolve the circle's chat room.
+            c = _CIRCLE.search(url)
+            if c:
+                try:
+                    room = (self.c.circle(int(c.group(1))).get("room_url") or "")
+                except Exception as e:  # no access / deleted: skip, don't fail the tick
+                    self.log(f"ping circle {c.group(1)}: {e}")
+                    continue
+                rm = _CHAT.search(room)
+                if rm:
+                    found.setdefault(int(rm.group(2)), (int(rm.group(1)), r.get("bucket_name") or "Ping"))
         return sum(self._poll_chat(b, chat, "ping", name) for chat, (b, name) in found.items())
 
     def poll_campfires(self, buckets: list[int]) -> int:
